@@ -1,4 +1,5 @@
 const express = require("express");
+const bcrypt = require('bcrypt')
 const app = express();
 app.listen(8080);
 app.use(express.json())
@@ -9,20 +10,33 @@ app.get("/", (req, res) => {
   res.send("hello world")
 });
 
-app.post("/signup",(req,res)=>{
-    const user= req.body;
+app.post("/signup", async (req,res)=>{
+    const password = await bcrypt.hash(req.body.password,12)
+    const user= {
+        id: req.body.id,
+        name: req.body.name,
+        email:req.body.email,
+        password:password,
+    }
     users.push(user)
-    res.send(users)
+    res.json(users)
 })
 
-app.post("/login",(req,res)=>{
+app.post("/login", async (req,res)=>{
     const {email, password}= req.body;
+
     const found = users.find((user)=>
-    user.email===email && user.password===password)
-    if (found){
-        res.send("Valid user")
+    user.email===email)
+
+    if (!found){
+        res.status(400).send("Invalid user - not found")
+        return
+    }
+    const isMatch = await bcrypt.compare(password,found.password)
+    if(isMatch){
+        res.send("Hello "+found.name)
     }
     else{
-        res.send("Invalid user")
+        res.status(400).send("Invalid Password")
     }
 })
